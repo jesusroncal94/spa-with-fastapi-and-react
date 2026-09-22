@@ -1,0 +1,49 @@
+services:
+  api:
+    build:
+      context: .
+      target: api-dev
+    command:
+      ["uv", "run", "uvicorn", "taskboard.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:///./data/taskboard.db
+      CORS_ORIGINS: '["http://localhost:5173"]'
+    volumes:
+      - ./backend/src:/app/src
+      - api-data:/app/data
+
+  web:
+    build:
+      context: .
+      target: web-dev
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    environment:
+      VITE_API_TARGET: http://api:8000
+    volumes:
+      - ./frontend/src:/web/src
+      - ./frontend/index.html:/web/index.html
+    depends_on:
+      - api
+
+  app:
+    build:
+      context: .
+      target: runtime
+    profiles: ["prod"]
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - app-data:/app/data
+
+  tests:
+    build:
+      context: .
+      target: api-dev
+    profiles: ["test"]
+
+volumes:
+  api-data:
+  app-data:
